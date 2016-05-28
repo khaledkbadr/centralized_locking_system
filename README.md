@@ -28,3 +28,12 @@ Accepts 2 params `id` and `resource` to release the resource.
 
 Responds with either a `success` or `failure` if the caller was not locking the resource.
 
+
+## Enhancements:
+
+Project is far from complete, here's what's still missing:
+
+* Add timeout to resource's lock to avoid if client crashed and did not release the lock
+* Deadlock detection support
+* Test Coverage
+* Move queue to redis or proper queue to support running app on mulitple workers
