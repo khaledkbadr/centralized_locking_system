@@ -13,7 +13,7 @@ def index():
     return jsonify({'Success': True}), 200
 
 
-@app.route('/access/resource', methods=['POST'])
+@app.route('/resource/access', methods=['POST'])
 def get_access():
     if request.method == 'POST':
         params = request.json
@@ -43,17 +43,44 @@ def get_access():
         timeout = datetime.now() + resource_instance.timeout_in_seconds
         while True:
             if datetime.now() > timeout:
-                resource_instance.remove_request()
+                resource_instance.remove_request(acquirer_id)
                 return jsonify({
                     'success': False, 'message': 'Request timed out'
                 }), 408
 
             if not resource_instance.resource_locked():
                 if resource_instance.next() == acquirer_id:
-                    resource_instance.remove_request()
+                    resource_instance.remove_request(acquirer_id)
                     return jsonify({
                         'success': True, 'granted': True
                     }), 200
+
+
+@app.route('/resource/release', methods=['POST'])
+def release_resource():
+    if request.method == 'POST':
+        params = request.json
+        try:
+            acquirer_id = params['id']
+            resource = params['resource']
+        except KeyError:
+            return jsonify({
+                'success': False, 'message': 'Could not process this request'
+            }), 400
+
+        if resource not in RESOURCE_IDS:
+            return jsonify({
+                'success': False, 'message': 'Resource not supported'
+            }), 400
+
+        if eval(resource).release_resource(acquirer_id):
+            return jsonify({
+                'success': True, 'message': 'Resource is released'
+            }), 200
+
+        return jsonify({
+            'success': False, 'message': 'Resource is not acquired by the caller'
+        }), 400
 
 if __name__ == "__main__":
     app.run(threaded=True, debug=True)

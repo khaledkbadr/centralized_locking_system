@@ -9,13 +9,21 @@ class ResourceBase(metaclass=ABCMeta):
     acquirer = None
     queue = deque()
 
-    def __init__(self, timeout_in_seconds=10.0):
+    def __init__(self, timeout_in_seconds=60.0):
         self.timeout_in_seconds = timedelta(seconds=timeout_in_seconds)
 
     @classmethod
     def lock_resource(cls, acquirer):
         cls.locked = True
         cls.acquirer = acquirer
+
+    @classmethod
+    def release_resource(cls, acquirer):
+        if acquirer == cls.acquirer:
+            cls.locked = False
+            cls.acquirer = None
+            return True
+        return False
 
     @classmethod
     def get_acquirer(cls):
@@ -33,7 +41,7 @@ class ResourceBase(metaclass=ABCMeta):
     @classmethod
     def remove_request(cls, caller_id):
         try:
-            if caller_id == deque[-1]:
+            if cls.queue and caller_id == cls.queue[-1]:
                 cls.queue.pop()
             else:
                 cls.queue.remove(caller_id)
