@@ -5,42 +5,49 @@ from datetime import timedelta
 
 class ResourceBase(metaclass=ABCMeta):
     """Base class to add and keep state of resource availability"""
-    def __init__(self, timeout_in_seconds=1.0):
-        self.available = True
-        self.locker = ''
-        self.queue = deque()
+    locked = False
+    acquirer = None
+    queue = deque()
+
+    def __init__(self, timeout_in_seconds=10.0):
         self.timeout_in_seconds = timedelta(seconds=timeout_in_seconds)
 
-        def lock_reource(self):
-            self.available = False
+    @classmethod
+    def lock_resource(cls, acquirer):
+        cls.locked = True
+        cls.acquirer = acquirer
 
-        def resource_locked(self):
-            return not self.available
+    @classmethod
+    def get_acquirer(cls):
+        return cls.acquirer
 
-        def add_locker(locker):
-            self.locker = locker
+    @classmethod
+    def resource_locked(cls):
+        return cls.locked
 
-        def add_request(self, request):
-            """
-            Add request to queue
-            @params: request is dict that has caller_id, created_at
-            """
-            try:
-                request['created_at'] += self.timeout_in_seconds
-                self.queue.appendleft(request)
-            except KeyError:
-                print('request param has no created_at field')
-            except TypeError:
-                print('created_at field must be of datetime type')
+    @classmethod
+    def add_request(cls, caller_id):
+        """Add request to queue"""
+        cls.queue.appendleft(caller_id)
 
-        def remove_request(self, request):
-            try:
-                self.queue.pop()
-            except IndexError:
-                print('Queue is empty')
+    @classmethod
+    def remove_request(cls, caller_id):
+        try:
+            if caller_id == deque[-1]:
+                cls.queue.pop()
+            else:
+                cls.queue.remove(caller_id)
+        except IndexError:
+            print('Queue is empty')
 
-        def request_queue_empty(self):
-            return bool(self.queue)
+    @classmethod
+    def request_queue_empty(cls):
+        return bool(cls.queue)
 
-        def last_request_time(self):
-            return self.queue[-1] if self.queue else None
+    @classmethod
+    def last_request_time(cls):
+        return cls.queue[-1] if cls.queue else None
+
+    @classmethod
+    def next(cls):
+        return cls.queue[-1]
